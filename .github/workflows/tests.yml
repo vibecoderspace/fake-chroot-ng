@@ -75,3 +75,29 @@ jobs:
 
       - name: Test
         run: make test
+
+      # Publish the binary the tests just ran, so the same native build can be
+      # shipped to a device. The `.so` name is what Android's package manager
+      # extracts to nativeLibraryDir; the file is an ET_EXEC either way.
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+          cp build/chroot-ng dist/noptrace
+          cp build/chroot-ng dist/libnoptrace.so
+          cp README.md LICENSE NOTICE dist/
+          tar -czf dist/chroot-ng-aarch64.tar.gz -C dist \
+            noptrace libnoptrace.so README.md LICENSE NOTICE
+          (cd dist && sha256sum chroot-ng-aarch64.tar.gz > chroot-ng-aarch64.tar.gz.sha256)
+          readelf -h dist/libnoptrace.so
+          ls -lh dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chroot-ng-aarch64
+          path: |
+            dist/noptrace
+            dist/libnoptrace.so
+            dist/chroot-ng-aarch64.tar.gz
+            dist/chroot-ng-aarch64.tar.gz.sha256
+          if-no-files-found: error
